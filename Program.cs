@@ -4,11 +4,11 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 
-
+//interface of all three filters is in client menu(option 2,8,6 and 7). logic of the filters is in service layer.
 
 namespace BookShop.Models
 {
-   
+   //model layer
     public class Book
     {
         private string _title;
@@ -72,7 +72,7 @@ namespace BookShop.Data
 
     
    
-
+    //repo layer
     public class BookRepository
     {
         private readonly string _path;
@@ -127,7 +127,7 @@ namespace BookShop.Data
         }
     }
 }
-
+//service layer
 
 namespace BookShop.Services
 {
@@ -184,7 +184,7 @@ namespace BookShop.Services
             b.Price = newPrice;
             return true;
         }
-
+        
         public void SortByPrice() => SortWith(b => b.Price);
         public void SortByTitle() => SortWith(b => b.Title);
 
@@ -195,15 +195,27 @@ namespace BookShop.Services
             _repo.GetAll().AddRange(sorted);
         }
 
-        public Book FindByTitle(string title) =>
+        //assessment filters
+        
+        //1-Name search
+        public Book namesearch(string title) =>
+            _repo.GetAll().FirstOrDefault(b => b.Title.Contains(title));
+
+        //3-category(exact match)
+       public Book FindByTitle(string title) =>
             _repo.GetAll().FirstOrDefault(b =>
-                b.Title.Equals(title, StringComparison.OrdinalIgnoreCase));
+                b.Title.Equals(title, StringComparison.Ordinal));
 
-        public decimal TotalStockValue() => _repo.GetAll().Sum(b => b.StockValue);
-
+        //2-Numeric range 
         public Book Cheapest() => _repo.GetAll().OrderBy(b => b.Price).FirstOrDefault();
         public Book MostExpensive() => _repo.GetAll().OrderByDescending(b => b.Price).FirstOrDefault();
 
+        //---------
+        
+        public decimal TotalStockValue() => _repo.GetAll().Sum(b => b.StockValue);
+        
+        
+       
         public List<Book> UnderBudget(decimal max) =>
             _repo.GetAll().Where(b => b.Price <= max).ToList();
 
@@ -251,7 +263,7 @@ namespace BookShop.UI
             return Console.ReadLine() ?? "";
         }
     }
-
+    //ui layer
     
     public abstract class Menu
     {
@@ -416,6 +428,7 @@ namespace BookShop.UI
                 Console.WriteLine($"{i + 1}. {Log.Entries[i]}");
         }
 
+        
         private void ShowAbove1000()
         {
             var list = Inventory.PricedAbove(1000);
@@ -437,14 +450,14 @@ namespace BookShop.UI
         protected override void ShowOptions()
         {
             Console.WriteLine("1. Display Book Catalog");
-            Console.WriteLine("2. Look Up Book Title");
+            Console.WriteLine("2. Look Up Book Title"); //question no3
             Console.WriteLine("3. Finalize Book Purchase");
-            Console.WriteLine("4. Track My Order History");
+            Console.WriteLine("4. show history"); 
             Console.WriteLine("5. Verify Title Availability");
-            Console.WriteLine("6. View Lowest Priced Deal");
-            Console.WriteLine("7. View Premium Tier Release");
+            Console.WriteLine("6. View Lowest Priced Deal"); //question no2
+            Console.WriteLine("7. View Premium Tier Release"); //question no2
             Console.WriteLine("8. Display Budget Constraints Filter");
-            Console.WriteLine("9. Wipe My Order History Records");
+            Console.WriteLine("9. Search title match"); //question no1
             Console.WriteLine("10. Log Out");
         }
 
@@ -465,14 +478,19 @@ namespace BookShop.UI
                 case 6: ShowDeal("Lowest Priced Deal", Inventory.Cheapest()); break;
                 case 7: ShowDeal("Premium Tier Release", Inventory.MostExpensive()); break;
                 case 8: BudgetFilter(); break;
-                case 9:
-                    Log.Clear();
-                    Console.WriteLine("\nYour checkout logging data has been dropped.");
+                case 9: Searchname();
+
                     break;
                 default: Console.WriteLine("Invalid choice."); break;
             }
         }
 
+
+
+       //logic for assessment filters 
+
+       
+        //3-Category(exact match)
         private void LookUp()
         {
             string query = Input.ReadString("Enter title name to query: ");
@@ -482,6 +500,31 @@ namespace BookShop.UI
             else
                 Console.WriteLine($"\nBook is in store!\nTitle: {b.Title}\nBy: {b.Author}\nPrice: Rs. {b.Price}");
         }
+
+
+        //1-namesearch(partial)
+        private void Searchname()
+        {
+            string query = Input.ReadString("Enter the name:");
+            Book b = Inventory.namesearch(query);
+            if (b == null)
+                Console.WriteLine("\nSorry, that release isn't in our active listings.");
+            else
+                Console.WriteLine($" title might be: {b.Title}");
+
+
+        }
+
+        //2-numeric range
+        private void ShowDeal(string label, Book b)
+        {
+            if (b == null)
+                Console.WriteLine("\nOur store inventory is completely bare.");
+            else
+                Console.WriteLine($"\n{label}: {b.Title} by {b.Author} (Rs. {b.Price})");
+        }
+
+        //----------
 
         private void Purchase()
         {
@@ -524,23 +567,16 @@ namespace BookShop.UI
             else
                 Console.WriteLine($"\nItem Checked: {b.Title}\nWarehouse Availability: {b.Stock} units remaining");
         }
-
-        private void ShowDeal(string label, Book b)
-        {
-            if (b == null)
-                Console.WriteLine("\nOur store inventory is completely bare.");
-            else
-                Console.WriteLine($"\n{label}: {b.Title} by {b.Author} (Rs. {b.Price})");
-        }
-
+       
+       
         private void BudgetFilter()
         {
-            decimal max = Input.ReadDecimal("Set Max Budget Value (Rs.): ");
-            var list = Inventory.UnderBudget(max);
-            Console.WriteLine($"\n--- FILTERED RESULTS UNDER RS. {max} ---");
-            if (list.Count == 0) Console.WriteLine("No matches fit your input criteria parameters.");
-            foreach (Book b in list)
-                Console.WriteLine($"* {b.Title} (Rs. {b.Price})");
+            string query = Input.ReadString("Enter the name:");
+            Book b = Inventory.namesearch(query);
+            if (b == null)
+                Console.WriteLine("\nSorry, that release isn't in our active listings.");
+            else
+                Console.WriteLine($" title might be: {b.Title}");
         }
     }
 }
@@ -583,3 +619,4 @@ namespace BookShop
         }
     }
 }
+
